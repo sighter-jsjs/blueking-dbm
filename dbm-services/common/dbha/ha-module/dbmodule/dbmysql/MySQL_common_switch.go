@@ -837,7 +837,7 @@ func (ins *SpiderCommonSwitch) RemoveNodeFromRoute(primaryConn *sql.DB, host str
 // GetPrimary found primary node from any connected tdbctl node's route table
 // If no primary found, return error.
 // Any blow condition could get primary success
-//  1. There is only one node: PrimaryRole, StatusOnline
+//  1. There is only one node: PrimaryRole
 //  2. No primary role found, and all alive SecondaryRole node's ReplicationMaster are the same,
 //     then thought the ReplicationMaster must be the Primary node's ServerName
 func (ins *SpiderCommonSwitch) GetPrimary() error {
@@ -870,8 +870,8 @@ func (ins *SpiderCommonSwitch) GetPrimary() error {
 				for _, node := range nodeMaps {
 					ins.ReportLogs(constvar.InfoResult,
 						fmt.Sprintf("try to check node:%s", util.GraceStructString(node)))
-					if strings.EqualFold(node.Status, StatusOnline) &&
-						strings.EqualFold(node.ClusterRole, PrimaryRole) {
+					//if its role is primary, its status must be Online
+					if strings.EqualFold(node.ClusterRole, PrimaryRole) {
 						if ins.PrimaryTdbctl != nil {
 							ins.ReportLogs(constvar.FailResult, fmt.Sprintf("multi primary node [%s#%d] and [%s#%d] found",
 								ins.PrimaryTdbctl.Host, ins.PrimaryTdbctl.Port, node.Host, node.Port))
@@ -884,7 +884,9 @@ func (ins *SpiderCommonSwitch) GetPrimary() error {
 							CurrentServer: 0,
 						}
 						if ins.Ip == node.Host {
-							return fmt.Errorf("broken-down node is primary, but its status is %s", StatusOnline)
+							ins.ReportLogs(constvar.WarnResult, fmt.Sprintf("current broken-down node is primary,"+
+								"but its status is %s", node.Status))
+							ins.PrimaryTdbctl.CurrentServer = 1
 						}
 					}
 					if strings.EqualFold(node.ClusterRole, SecondaryRole) {
