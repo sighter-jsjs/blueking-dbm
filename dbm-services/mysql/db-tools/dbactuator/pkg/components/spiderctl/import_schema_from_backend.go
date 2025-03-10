@@ -15,6 +15,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"runtime"
@@ -428,6 +429,33 @@ func (c *ImportSchemaFromBackendComp) MigrateRoutinesAndTriger() (err error) {
 	if err != nil {
 		logger.Error("执行导入存储过程、触发器、event的SQL文件:%s 失败:%s", c.tmpDumpFile, err.Error())
 		return err
+	}
+	return err
+}
+
+// MigrateViewsFromSpider 从spider导出视图导入到中控
+func (c *ImportSchemaFromBackendComp) MigrateViewsFromSpider() (err error) {
+	// get all views from spiderconn
+	var views []native.View
+	if views, err = c.spiderconn.GetAllViews(); err != nil {
+		logger.Error("show views from spiderconn failed: %s", err.Error())
+		return err
+	}
+	logger.Info("get all views from spiderconn success, views:%d", len(views))
+	for _, view := range views {
+		logger.Info("import view: %s.%s", view.DbName, view.Name)
+		var viewName, viewSQL, charsetClient, collationClient string
+		err = c.spiderconn.Db.QueryRow(fmt.Sprintf("show create view `%s`.`%s`", view.DbName, view.Name)).Scan(&viewName,
+			&viewSQL,
+			&charsetClient,
+			&collationClient)
+		if err != nil {
+			log.Fatal("Error fetching view:", err)
+		}
+		if _, err = c.tdbctlConn.Exec(viewSQL); err != nil {
+			logger.Error("import view failed: %s", err.Error())
+			return err
+		}
 	}
 	return err
 }

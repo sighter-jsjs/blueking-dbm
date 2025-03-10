@@ -699,6 +699,21 @@ func (h *DbWorker) ShowTables(db string) (tables []string, err error) {
 	return tables, nil
 }
 
+// View view
+type View struct {
+	DbName  string `db:"TABLE_SCHEMA"`
+	Name    string `db:"TABLE_NAME"`
+	Definer string `db:"DEFINER"`
+}
+
+// GetAllViews get all views
+func (h *DbWorker) GetAllViews() (views []View, err error) {
+	if err = h.Queryx(&views, "select TABLE_SCHEMA,TABLE_NAME,DEFINER from information_schema.views"); err != nil {
+		return
+	}
+	return views, nil
+}
+
 // ShowEngines 返回执行 show engines;
 //
 //	@receiver h
