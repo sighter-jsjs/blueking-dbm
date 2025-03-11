@@ -119,7 +119,7 @@ def ClusterDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, para
     if acts_list and param.get("restart_exporter"):
         sub_pipeline.add_parallel_acts(acts_list=acts_list)
 
-    return sub_pipeline.build_sub_process(sub_name=_("REDIS标准化-{}").format(param["cluster_domain"]))
+    return sub_pipeline.build_sub_process(sub_name=_("dbmon重装-{}").format(param["cluster_domain"]))
 
 
 def ClusterIPsDbmonInstallAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, param: Dict) -> SubBuilder:

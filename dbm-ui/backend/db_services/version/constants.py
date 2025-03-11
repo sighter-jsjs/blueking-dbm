@@ -69,6 +69,7 @@ class TendisPlusVersion(str, StructuredEnum):
     TendisPlus25 = EnumField("Tendisplus-2.5", _("Tendisplus-2.5"))
     TendisPlus26 = EnumField("Tendisplus-2.6", _("Tendisplus-2.6"))
     TendisPlus27 = EnumField("Tendisplus-2.7", _("Tendisplus-2.7"))
+    TendisPlus28 = EnumField("Tendisplus-2.8", _("Tendisplus-2.8"))
 
 
 class TendisSsdVersion(str, StructuredEnum):
