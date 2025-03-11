@@ -32,7 +32,7 @@ import (
 
 // LogicalLoaderMysqldump this logical loader is used to load logical backup with mysql(client)
 type LogicalLoaderMysqldump struct {
-	cnf          *config.BackupConfig
+	cnf          *config.LogicalLoaderConfig
 	dbbackupHome string
 	dbConn       *sql.DB
 	// initConnect load 之前会保留 init_connect 参数，load完成后会恢复

@@ -21,7 +21,7 @@ import (
 
 // PhysicalRocksdbLoader physical rocksdb loader
 type PhysicalRocksdbLoader struct {
-	cfg                   *config.BackupConfig
+	cfg                   *config.PhysicalLoaderConfig
 	indexContent          *dbareport.IndexContent
 	loaderLogfile         string
 	targetName            string
