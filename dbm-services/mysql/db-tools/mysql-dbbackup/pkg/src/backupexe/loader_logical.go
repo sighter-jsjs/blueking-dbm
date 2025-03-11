@@ -22,7 +22,7 @@ import (
 
 // LogicalLoader this is used to load logical backup
 type LogicalLoader struct {
-	cnf                 *config.BackupConfig
+	cnf                 *config.LogicalLoad
 	dbbackupHome        string
 	dbConn              *sql.DB
 	initConnectOriginal string
@@ -39,15 +39,15 @@ func (l *LogicalLoader) initConfig(metaInfo *dbareport.IndexContent) error {
 		l.dbbackupHome = filepath.Dir(cmdPath)
 	}
 	l.metaInfo = metaInfo
-	if l.cnf.LogicalLoad.MysqlCharset == "" {
-		l.cnf.LogicalLoad.MysqlCharset = metaInfo.BackupCharset
+	if l.cnf.MysqlCharset == "" {
+		l.cnf.MysqlCharset = metaInfo.BackupCharset
 	}
 	return nil
 }
 
 func (l *LogicalLoader) preExecute() error {
 	// 临时清理 init_connect
-	dbListDrop := l.cnf.LogicalLoad.DBListDropIfExists
+	dbListDrop := l.cnf.DBListDropIfExists
 	var initConnect string
 	if err := l.dbConn.QueryRow("select @@init_connect").Scan(&initConnect); err != nil {
 		return err
@@ -63,7 +63,7 @@ func (l *LogicalLoader) preExecute() error {
 	// handle DBListDropIfExists
 	// 如果有设置这个选项，会在运行前执行 drop database if exists 命令，来清理脏库
 	if strings.TrimSpace(dbListDrop) != "" {
-		if err := dropDatabasesBeforeLoad(dbListDrop, &l.cnf.LogicalLoad, l.dbConn); err != nil {
+		if err := dropDatabasesBeforeLoad(dbListDrop, l.cnf, l.dbConn); err != nil {
 			return err
 		}
 	}
@@ -123,11 +123,11 @@ func dropDatabasesBeforeLoad(dbListToDropStr string, cnf *config.LogicalLoad, db
 // Execute execute loading backup with logical backup tool
 func (l *LogicalLoader) Execute() (err error) {
 	cnfPublic := config.Public{
-		MysqlHost:    l.cnf.LogicalLoad.MysqlHost,
-		MysqlPort:    l.cnf.LogicalLoad.MysqlPort,
-		MysqlUser:    l.cnf.LogicalLoad.MysqlUser,
-		MysqlPasswd:  l.cnf.LogicalLoad.MysqlPasswd,
-		MysqlCharset: l.cnf.LogicalLoad.MysqlCharset,
+		MysqlHost:    l.cnf.MysqlHost,
+		MysqlPort:    l.cnf.MysqlPort,
+		MysqlUser:    l.cnf.MysqlUser,
+		MysqlPasswd:  l.cnf.MysqlPasswd,
+		MysqlCharset: l.cnf.MysqlCharset,
 	}
 	l.dbConn, err = mysqlconn.InitConn(&cnfPublic)
 	if err != nil {
@@ -153,26 +153,26 @@ func (l *LogicalLoader) Execute() (err error) {
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
 	args := []string{
 		"-v", strconv.Itoa(3),
-		"-h", l.cnf.LogicalLoad.MysqlHost,
-		"-P", strconv.Itoa(l.cnf.LogicalLoad.MysqlPort),
-		"-u", l.cnf.LogicalLoad.MysqlUser,
-		fmt.Sprintf(`-p '%s'`, l.cnf.LogicalLoad.MysqlPasswd), // 密码里可能有特殊字符
-		"-d", l.cnf.LogicalLoad.MysqlLoadDir,
-		fmt.Sprintf("--set-names=%s", l.cnf.LogicalLoad.MysqlCharset),
+		"-h", l.cnf.MysqlHost,
+		"-P", strconv.Itoa(l.cnf.MysqlPort),
+		"-u", l.cnf.MysqlUser,
+		fmt.Sprintf(`-p '%s'`, l.cnf.MysqlPasswd), // 密码里可能有特殊字符
+		"-d", l.cnf.MysqlLoadDir,
+		fmt.Sprintf("--set-names=%s", l.cnf.MysqlCharset),
 	}
-	if !strings.Contains(l.cnf.LogicalLoad.InitCommand, "max_allowed_packet") {
-		l.cnf.LogicalLoad.InitCommand += ";set global max_allowed_packet=1073741824"
+	if !strings.Contains(l.cnf.InitCommand, "max_allowed_packet") {
+		l.cnf.InitCommand += ";set global max_allowed_packet=1073741824"
 	}
-	if l.cnf.LogicalLoad.InitCommand != "" {
+	if l.cnf.InitCommand != "" {
 		// https://github.com/mydumper/mydumper/blob/master/README.md#defaults-file
 		// [myloader_session_variables]
 		// tc_admin=0  # for tdbctl
-		sessionVars, globalVars := SetVariablesToConfigIni(l.cnf.LogicalLoad.InitCommand)
+		sessionVars, globalVars := SetVariablesToConfigIni(l.cnf.InitCommand)
 		myloaderVariables := &MydumperIni{
 			MyloaderSessionVariables: sessionVars,
 			MyloaderGlobalVariables:  globalVars,
 		}
-		defaultsFile := filepath.Join(pwd, fmt.Sprintf("myloader_vars_%d.cnf", l.cnf.LogicalLoad.MysqlPort))
+		defaultsFile := filepath.Join(pwd, fmt.Sprintf("myloader_vars_%d.cnf", l.cnf.MysqlPort))
 		if err = myloaderVariables.SaveIni(defaultsFile); err != nil {
 			return errors.WithMessage(err, "generate myloader_vars")
 		}
@@ -181,24 +181,24 @@ func (l *LogicalLoader) Execute() (err error) {
 	var serverVersion string
 	if err := l.dbConn.QueryRow("select version()").Scan(&serverVersion); err == nil {
 		if strings.Contains(serverVersion, "tdbctl") &&
-			!strings.Contains(strings.ToLower(l.cnf.LogicalLoad.InitCommand), "tc_admin") {
+			!strings.Contains(strings.ToLower(l.cnf.InitCommand), "tc_admin") {
 			return errors.Errorf("importing sql to tdbctl need setting tc_admin as InitCommand")
 		}
 	}
-	if l.cnf.LogicalLoad.Threads > 0 {
+	if l.cnf.Threads > 0 {
 		// cpus, err := cmutil.GetCPUInfo()
-		args = append(args, fmt.Sprintf("--threads=%d", l.cnf.LogicalLoad.Threads))
+		args = append(args, fmt.Sprintf("--threads=%d", l.cnf.Threads))
 	}
-	if l.cnf.LogicalLoad.EnableBinlog {
+	if l.cnf.EnableBinlog {
 		args = append(args, "--enable-binlog")
 	}
-	if l.cnf.LogicalLoad.SchemaOnly {
+	if l.cnf.SchemaOnly {
 		args = append(args, "--no-data")
 	}
-	if l.cnf.LogicalLoad.CreateTableIfNotExists {
+	if l.cnf.CreateTableIfNotExists {
 		args = append(args, "--append-if-not-exist")
 	}
-	if tableFilter, err := l.cnf.LogicalLoad.BuildArgsTableFilterForMydumper(); err != nil {
+	if tableFilter, err := l.cnf.BuildArgsTableFilterForMydumper(); err != nil {
 		return err
 	} else {
 		args = append(args, tableFilter...)
@@ -206,7 +206,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	// ToDo extraOpt
 	// myloader 日志输出到当前目录的 logs/myloader_xx.log
 	logfile := filepath.Join(pwd, "logs", fmt.Sprintf("myloader_%d_%d.log",
-		l.cnf.LogicalLoad.MysqlPort, int(time.Now().Weekday())))
+		l.cnf.MysqlPort, int(time.Now().Weekday())))
 	_ = os.MkdirAll(filepath.Dir(logfile), 0755)
 
 	args = append(args, ">>", logfile, "2>&1")

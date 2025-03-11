@@ -20,7 +20,7 @@ import (
 // PhysicalTokudbLoader this is used to load physical backup
 // decompress, apply, recover
 type PhysicalTokudbLoader struct {
-	cnf           *config.BackupConfig
+	cnf           *config.PhysicalLoaderConfig
 	dbbackupHome  string
 	mysqlVersion  string
 	storageEngine string
