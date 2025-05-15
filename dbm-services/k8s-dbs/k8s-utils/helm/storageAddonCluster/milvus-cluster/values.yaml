@@ -708,8 +708,8 @@ minio:
   image:
     tag: "RELEASE.2023-03-20T20-16-18Z"
     pullPolicy: IfNotPresent
-  accessKey: minioadmin
-  secretKey: minioadmin
+  accessKey: ""
+  secretKey: ""
   existingSecret: ""
   bucketName: "milvus-bucket"
   rootPath: file
@@ -1362,8 +1362,8 @@ externalS3:
   enabled: #true
   host: #"minio-minio"
   port: #"9000"
-  accessKey: #"mjkrbg8z"
-  secretKey: #"mjkrbg8z"
+  accessKey: ""
+  secretKey: ""
   useSSL: #false
   bucketName: #"milvus"
   rootPath: ""
