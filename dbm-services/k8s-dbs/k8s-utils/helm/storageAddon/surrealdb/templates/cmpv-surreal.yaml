@@ -5,11 +5,16 @@ metadata:
 spec:
   compatibilityRules:
     - releases:
+        - surreal-2.3.2
         - surreal-2.2.1
         - surreal-2.2.0
       compDefs:
         - surreal-tikv-{{ .Chart.Version}}
   releases:
+    - name: surreal-2.3.2
+      serviceVersion: 2.3.2
+      images:
+        surreal: docker.io/surrealdb/surrealdb:v2.3.2
     - name: surreal-2.2.1
       serviceVersion: 2.2.1
       images:
