@@ -97,16 +97,6 @@ runtimeClassName: ""
 rootUser: "kubeblocks"
 rootPassword: "kubeblocks"
 
-## Use existing Secret that store following variables:
-##
-## | Chart var             | .data.<key> in Secret    |
-## |:----------------------|:-------------------------|
-## | rootUser              | rootUser                 |
-## | rootPassword          | rootPassword             |
-##
-## All mentioned variables will be ignored in values file.
-## .data.rootUser and .data.rootPassword are mandatory,
-## others depend on enabled status of corresponding sections.
 existingSecret: ""
 
 ## Directory on the MinIO pof
