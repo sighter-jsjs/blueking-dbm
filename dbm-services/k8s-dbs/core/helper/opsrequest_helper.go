@@ -28,6 +28,7 @@ import (
 	"k8s-dbs/core/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metaentity "k8s-dbs/metadata/provider/entity"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -463,8 +464,7 @@ func CreateVolumeExpansionObject(request *entity.Request, clusterObject *kbv1.Cl
 //	*entity.CustomResourceDefinition - 创建的CRD对象
 //	error - 错误信息(如果有)
 func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceDefinition, error) {
-	objectName := utils.ResourceName("ops-expose-", 10)
-
+	objectName := utils.ResourceName("ops-expose-", OpsNameSuffixLength)
 	// Convert selector key about kb
 	podSelect := request.Service.PodSelect
 	for key, value := range podSelect {
@@ -473,34 +473,41 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 			podSelect[newKey] = value
 		}
 	}
-
-	service := opv1.OpsService{
-		Name:         request.Service.Name,
-		ServiceType:  request.Service.ServiceType,
-		Annotations:  request.Service.Annotations,
-		Ports:        []corev1.ServicePort{},
-		RoleSelector: request.Service.RoleSelector,
-		PodSelector:  podSelect,
+	opsService, err := createOpsService(request, podSelect)
+	if err != nil {
+		return nil, err
 	}
 
-	if ports, exists := componentTargetPortsMap[request.ComponentName]; exists {
-		for i := 0; i < len(ports) && i < len(request.Service.Ports); i++ {
-			service.Ports = append(service.Ports, corev1.ServicePort{
-				Name:       ports[i],
-				Port:       request.Service.Ports[i],
-				TargetPort: intstr.FromString(ports[i]),
-				Protocol:   corev1.ProtocolTCP,
-			})
-		}
-	}
+	opsRequest := createExposeOpsRequest(request, opsService, objectName)
 
-	ExposeObject := opv1.Expose{
+	unstructuredClusterDef, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&opsRequest)
+	if err != nil {
+		return nil, fmt.Errorf("转换对象为 Unstructured 类型失败: %v", err)
+	}
+	crd := &entity.CustomResourceDefinition{
+		Namespace:            request.Metadata.Namespace,
+		ResourceType:         coreconst.Expose,
+		ResourceName:         objectName,
+		GroupVersionResource: kbtypes.OpsGVR(),
+		ResourceObject: &unstructured.Unstructured{
+			Object: unstructuredClusterDef,
+		},
+	}
+	return crd, nil
+}
+
+func createExposeOpsRequest(
+	request *entity.Request,
+	service opv1.OpsService,
+	objectName string,
+) *opv1.OpsRequest {
+	expose := opv1.Expose{
 		ComponentName: request.ComponentName,
 		Switch:        switchTypeMap[request.Enable],
 		Services:      []opv1.OpsService{service},
 	}
 
-	expose := &opv1.OpsRequest{
+	opsRequest := &opv1.OpsRequest{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: coreconst.APIVersion,
 			Kind:       coreconst.OpsRequest,
@@ -517,28 +524,54 @@ func CreateExposeClusterObject(request *entity.Request) (*entity.CustomResourceD
 			TimeoutSeconds:              utils.Int32Ptr(TimeoutSeconds),
 			SpecificOpsRequest: opv1.SpecificOpsRequest{
 				ExposeList: []opv1.Expose{
-					ExposeObject,
+					expose,
 				},
 			},
 		},
 	}
+	return opsRequest
+}
 
-	unstructuredClusterDef, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&expose)
-	if err != nil {
-		return nil, fmt.Errorf("转换对象为Unstructured类型失败: %v", err)
+func createOpsService(request *entity.Request, podSelect map[string]string) (opv1.OpsService, error) {
+	service := opv1.OpsService{
+		Name:         request.Service.Name,
+		ServiceType:  request.Service.ServiceType,
+		Annotations:  request.Service.Annotations,
+		Ports:        []corev1.ServicePort{},
+		RoleSelector: request.Service.RoleSelector,
+		PodSelector:  podSelect,
 	}
-
-	Obj := &unstructured.Unstructured{
-		Object: unstructuredClusterDef,
+	if ports, exists := componentTargetPortsMap[request.ComponentName]; exists {
+		componentPortsLen := len(ports)
+		exposePortsLen := len(request.Service.Ports)
+		if exposePortsLen > componentPortsLen {
+			return opv1.OpsService{}, fmt.Errorf("暴露端口数 %d 超过组件可暴露的端口数 %d", exposePortsLen, componentPortsLen)
+		}
+		for i := 0; i < exposePortsLen; i++ {
+			protocol := corev1.ProtocolTCP
+			if i < len(request.Service.Protocols) {
+				protocol = request.Service.Protocols[i]
+			}
+			if i < len(request.Service.NodePorts) &&
+				strings.EqualFold(string(request.Service.ServiceType), string(corev1.ServiceTypeNodePort)) {
+				service.Ports = append(service.Ports, corev1.ServicePort{
+					Name:       ports[i],
+					Port:       request.Service.Ports[i],
+					TargetPort: intstr.FromString(ports[i]),
+					Protocol:   protocol,
+					NodePort:   request.Service.NodePorts[i],
+				})
+			} else {
+				service.Ports = append(service.Ports, corev1.ServicePort{
+					Name:       ports[i],
+					Port:       request.Service.Ports[i],
+					TargetPort: intstr.FromString(ports[i]),
+					Protocol:   request.Service.Protocols[i],
+				})
+			}
+		}
 	}
-	crd := &entity.CustomResourceDefinition{
-		Namespace:            request.Metadata.Namespace,
-		ResourceType:         coreconst.Expose,
-		ResourceName:         objectName,
-		GroupVersionResource: kbtypes.OpsGVR(),
-		ResourceObject:       Obj,
-	}
-	return crd, err
+	return service, nil
 }
 
 // CreateOpsRequestMetaData 构建 opsRequest 元数据
