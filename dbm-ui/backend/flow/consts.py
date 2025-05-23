@@ -312,6 +312,7 @@ class MediumEnum(str, StructuredEnum):
     MongoMonitor = EnumField("mongo-monitor", _("Mongo 监控"))
     Doris = EnumField("doris", _("doris"))
     Vm = EnumField("vm", _("vm"))
+    Oracle = EnumField("oracle", _("oracle"))
 
 
 class CloudServiceName(str, StructuredEnum):
@@ -1613,3 +1614,9 @@ class ExecuteShellScriptUser(str, StructuredEnum):
     Root = EnumField("root", _("root"))
     Mysql = EnumField("mysql", _("mysql"))
     Mongodb = EnumField("mongodb", _("mongodb"))
+    Oracle = EnumField("oracle", _("oracle"))
+
+
+class OracleDBActuatorActionEnum(str, StructuredEnum):
+    OsInit = EnumField("os_oracle_init", _("os_oracle_init"))
+    OracleExecuteScript = EnumField("execute_script", _("execute_script"))
