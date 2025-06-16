@@ -133,5 +133,15 @@
         }
       }
     }
+
+    .bk-select-trigger {
+      height: 40px !important;
+
+      .bk-select-tag {
+        height: 40px !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
   }
 </style>
