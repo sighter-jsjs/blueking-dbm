@@ -79,7 +79,12 @@ class InstallNodemanPluginService(BaseService):
                 if retry_count <= max_retries:
                     time.sleep(5)  # 等待5秒再重试
                 else:
-                    break
+                    self.log_error(
+                        _("获取任务详情失败: {}").format(
+                            f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
+                        )
+                    )
+                    return False
             else:
                 self.log_error(
                     _("获取任务详情失败: {}").format(
@@ -89,10 +94,14 @@ class InstallNodemanPluginService(BaseService):
                 return False
         status = response["data"]["status"]
         if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
+            self.log_info(f"installing plugin, job id is {job_id}")
             return True
         if status == BKNodeManApi.JobStatusType.SUCCESS:
+            self.log_info("install plugin successfully")
+            self.finish_schedule()
             return True
         else:
+            self.log_error("install plugin failed")
             return False
 
 
