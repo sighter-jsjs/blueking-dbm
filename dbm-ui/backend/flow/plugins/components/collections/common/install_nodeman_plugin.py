@@ -68,7 +68,7 @@ class InstallNodemanPluginService(BaseService):
         retry_count = 0
         while retry_count <= max_retries:
             # 使用 BKNodeManApi.job_details 的 _send 方法获取原始网络响应
-            raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={}, use_admin=True)
+            raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
             # 检查网络状态
             if raw_response.status_code == self.HTTP_STATUS_OK:
                 # 网络请求成功，解析响应内容
