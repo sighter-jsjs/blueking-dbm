@@ -22,6 +22,7 @@ from backend.tests.mock_data.ticket.kafka_flow import (
     KAFKA_SCALE_UP_DATA,
     KAFKA_SPEC_DATA,
 )
+from backend.tests.ticket.decorator import use_simple_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -40,6 +41,7 @@ def setup_kafka_database(django_db_setup, django_db_blocker):
         Spec.objects.filter(spec_cluster_type=DBType.Kafka).delete()
 
 
+# mock_data中的单据信息不符合流程构建的参数。
 class TestKafkaFlow(BaseTicketTest):
     """
     kafka测试类
@@ -53,6 +55,7 @@ class TestKafkaFlow(BaseTicketTest):
         # kafka集群部署
         self.flow_test(KAFKA_APPLY_DATA)
 
+    @use_simple_mock
     def test_kafka_scale_up_flow(self):
         # kafka扩容
         self.flow_test(KAFKA_SCALE_UP_DATA)

@@ -22,11 +22,13 @@ from backend.configuration.handlers.password import DBPasswordHandler
 from backend.core import notify
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbresource import DBResourceApiMock
+from backend.tests.mock_data.components.engine_run_pipeline import EngineApiMock
+from backend.tests.mock_data.components.inner import mock_inner_flow_run
 from backend.tests.mock_data.components.itsm import ItsmApiMock
 from backend.tests.mock_data.components.mysql_priv_manager import DBPrivManagerApiMock
 from backend.tests.mock_data.components.nodeman import NodemanApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
-from backend.tests.mock_data.ticket.ticket_flow import PASSWORD, ROOT_ID
+from backend.tests.mock_data.ticket.ticket_flow import PASSWORD
 from backend.ticket.constants import TicketFlowStatus, TicketStatus
 from backend.ticket.flow_manager.inner import InnerFlow
 from backend.ticket.flow_manager.pause import PauseFlow
@@ -45,10 +47,10 @@ class BaseTicketTest:
     # 默认单据测试的patch
     patches = [
         patch.object(TicketViewSet, "permission_classes", return_value=[AllowAny]),
-        patch.object(InnerFlow, "_run", return_value=ROOT_ID),
         patch.object(InnerFlow, "status", new_callable=PropertyMock, return_value=TicketStatus.SUCCEEDED),
         patch.object(PauseFlow, "status", new_callable=PropertyMock, return_value=TicketFlowStatus.SKIPPED),
         patch.object(DBPasswordHandler, "get_random_password", return_value=PASSWORD),
+        patch.object(InnerFlow, "_run", mock_inner_flow_run),
         patch.object(notify.send_msg, "apply_async", return_value="this is a test msg"),
         patch.object(TicketViewSet, "get_permissions"),
         patch.object(settings, "MIDDLEWARE", return_value=[]),
@@ -61,8 +63,7 @@ class BaseTicketTest:
         patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock()),
         patch("backend.db_services.ipchooser.query.resource.BKNodeManApi", NodemanApiMock()),
         patch("backend.configuration.handlers.password.DBPrivManagerApi", DBPrivManagerApiMock()),
-        # patch("bamboo_engine.api.run_pipeline", side_effect=EngineApiMock.run_pipeline),
-        # patch.object(InnerFlow, "_run", mock_inner_flow_run),
+        patch("bamboo_engine.api.run_pipeline", side_effect=EngineApiMock.run_pipeline),
     ]
     # 默认测试请求客户端
     client = APIClient()
