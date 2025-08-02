@@ -87,7 +87,7 @@ class InstallNodemanPluginService(BaseService):
                 self.log_info(f"retrying job {job_id}, retry count: {retry_count}")
                 return True
             else:
-                self.log_error(_(f"已经达到最大重试次数{retry_count}次"))
+                self.log_error(f"已经达到最大重试次数{retry_count}次")
                 return False
         else:
             self.log_error(
