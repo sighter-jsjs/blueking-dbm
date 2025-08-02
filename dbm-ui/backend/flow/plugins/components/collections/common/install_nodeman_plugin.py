@@ -8,8 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import time
-
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 from pipeline.core.flow import StaticIntervalGenerator
@@ -63,45 +61,40 @@ class InstallNodemanPluginService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None):
         job_id = data.get_one_of_outputs("job_id")
-        # 调用 API 并设置 raw=True, raise_exception=False，遇到特定错误码时重试
         max_retries = 3
-        retry_count = 0
-        while retry_count <= max_retries:
-            # 使用 BKNodeManApi.job_details 的 _send 方法获取原始网络响应
-            raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
-            # 检查网络状态
-            if raw_response.status_code == self.HTTP_STATUS_OK:
-                # 网络请求成功，解析响应内容
-                response = raw_response.json()
-                break
-            elif raw_response.status_code in self.RETRY_ERROR_CODES:
-                retry_count += 1
-                if retry_count <= max_retries:
-                    time.sleep(5)  # 等待5秒再重试
-                else:
-                    self.log_error(
-                        _("获取任务详情失败: {}").format(
-                            f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
-                        )
-                    )
-                    return False
+        retry_count = data.get_one_of_outputs("retry_count", 0)
+        # 调用 API 并设置 raw=True, raise_exception=False，遇到特定错误码时重试
+        raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
+        # 检查网络状态
+        if raw_response.status_code == self.HTTP_STATUS_OK:
+            # 网络请求成功，解析响应内容
+            response = raw_response.json()
+            status = response["data"]["status"]
+            if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
+                self.log_info(f"installing plugin, job id is {job_id}")
+                return True
+            if status == BKNodeManApi.JobStatusType.SUCCESS:
+                self.log_info("install plugin successfully")
+                self.finish_schedule()
+                return True
             else:
-                self.log_error(
-                    _("获取任务详情失败: {}").format(
-                        f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
-                    )
-                )
+                self.log_error("install plugin failed")
                 return False
-        status = response["data"]["status"]
-        if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
-            self.log_info(f"installing plugin, job id is {job_id}")
-            return True
-        if status == BKNodeManApi.JobStatusType.SUCCESS:
-            self.log_info("install plugin successfully")
-            self.finish_schedule()
-            return True
+        elif raw_response.status_code in self.RETRY_ERROR_CODES:
+            retry_count += 1
+            if retry_count <= max_retries:
+                data.outputs.retry_count = retry_count
+                self.log_info(f"retrying job {job_id}, retry count: {retry_count}")
+                return True
+            else:
+                self.log_error(_(f"已经达到最大重试次数{retry_count}次"))
+                return False
         else:
-            self.log_error("install plugin failed")
+            self.log_error(
+                _("获取任务详情失败: {}").format(
+                    f"code: {raw_response.status_code}, message: {raw_response.text or raw_response.reason}"
+                )
+            )
             return False
 
 
