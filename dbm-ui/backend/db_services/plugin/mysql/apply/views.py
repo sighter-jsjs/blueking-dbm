@@ -19,7 +19,9 @@ from backend.db_services.plugin.constants import SWAGGER_TAG
 from backend.db_services.plugin.mysql.apply.serializers import MysqlHaApplyQuickMinorPassSerializer
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
+from backend.ticket.contexts import TicketContext
 from backend.ticket.models import Ticket
+from backend.ticket.serializers import TicketSerializer
 
 
 class ApplyPluginViewSet(viewsets.SystemViewSet):
@@ -27,7 +29,7 @@ class ApplyPluginViewSet(viewsets.SystemViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请mysql集群小额绿通部署"),
-        query_serializer=MysqlHaApplyQuickMinorPassSerializer(),
+        request_body=MysqlHaApplyQuickMinorPassSerializer(),
         tags=[SWAGGER_TAG],
     )
     @action(methods=["POST"], detail=False, serializer_class=MysqlHaApplyQuickMinorPassSerializer)
@@ -41,4 +43,13 @@ class ApplyPluginViewSet(viewsets.SystemViewSet):
             remark=request.data["remark"],
             details=data,
         )
-        return Response(ticket)
+        serializer_data = TicketSerializer(
+            instance=ticket,
+            context={
+                "request": request,
+                "ticket_type": TicketType.MYSQL_HA_APPLY_QUICK_MINOR_PASS,
+                "bk_biz_id": request.data["bk_biz_id"],
+                "ticket_ctx": TicketContext(),
+            },
+        ).data
+        return Response(serializer_data)

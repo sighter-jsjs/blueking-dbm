@@ -20,7 +20,7 @@
         cluster-detail-router-name="MongoDBSharedClusterDetail"
         :data="data">
         <BkButton
-          v-db-console="'mongodb.sharedClusterList.authorize'"
+          v-db-console="'mongodb.sharedClusterList.importAuthorize'"
           class="ml-4"
           :disabled="data.isOffline"
           size="small"
@@ -36,6 +36,7 @@
           {{ t('获取访问方式') }}
         </BkButton>
         <AuthRouterLink
+          v-db-console="'mongodb.sharedClusterList.webconsole'"
           action-id="mongodb_webconsole"
           class="ml-4"
           :permission="data.permission.mongodb_webconsole"
@@ -63,7 +64,23 @@
               <DbIcon type="more" />
             </BkButton>
           </template>
-          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.capacityChange'">
+          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.queryAccessSource'">
+            <OperationBtnStatusTips
+              :data="data"
+              :disabled="!data.isOffline">
+              <AuthButton
+                action-id="mongodb_source_access_view"
+                :disabled="data.isOffline"
+                :permission="data.permission.mongodb_source_access_view"
+                :resource="data.id"
+                style="width: 100%; height: 32px"
+                text
+                @click="handleGoQueryAccessSourcePage(data.master_domain)">
+                {{ t('查询访问来源') }}
+              </AuthButton>
+            </OperationBtnStatusTips>
+          </BkDropdownItem>
+          <BkDropdownItem v-db-console="'mongodb.sharedClusterList.scaleUpDown'">
             <OperationBtnStatusTips :data="data">
               <BkButton
                 :disabled="data.isOffline || data.operationDisabled"
@@ -252,6 +269,16 @@
       name: TicketTypes.MONGODB_SCALE_UPDOWN,
       query: {
         masterDomain: data.value!.master_domain,
+      },
+    });
+    window.open(routeInfo.href, '_blank');
+  };
+
+  const handleGoQueryAccessSourcePage = (masterDomain: string) => {
+    const routeInfo = router.resolve({
+      name: 'MongodbQueryAccessSource',
+      query: {
+        masterDomain,
       },
     });
     window.open(routeInfo.href, '_blank');

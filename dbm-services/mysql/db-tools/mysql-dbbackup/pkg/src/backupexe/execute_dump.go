@@ -70,7 +70,7 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 	}
 	// 如果是 slave 节点，提前获取他的 master_host, master_port
 	if lo.Contains([]string{cst.RoleSlave, cst.RoleRepeater}, strings.ToLower(cnf.Public.MysqlRole)) {
-		masterHost, masterPort, err := mysqlconn.ShowMysqlSlaveStatus(db)
+		masterHost, masterPort, err := mysqlconn.GetSlaveStatusMasterInfo(db)
 		if err != nil {
 			return nil, err
 		}
@@ -79,6 +79,14 @@ func ExecuteBackup(ctx context.Context, cnf *config.BackupConfig) (*dbareport.In
 		}
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterHost = masterHost
 		metaInfo.BinlogInfo.ShowSlaveStatus.MasterPort = masterPort
+	}
+	// get datadir size
+	if metaInfo.IsFullBackup {
+		datadirSizeMB, err := mysqlconn.GetMysqlDataSize(db)
+		if err != nil {
+			return nil, err
+		}
+		metaInfo.DataDirSizeMB = uint64(datadirSizeMB)
 	}
 
 	if err = buildMetaInfo(cnf, metaInfo); err != nil {

@@ -28,7 +28,7 @@ type K8sDbsError struct {
 
 // Error string of error
 func (e *K8sDbsError) Error() string {
-	return e.Message
+	return e.ErrorDetail
 }
 
 type ErrorCode int
@@ -47,6 +47,10 @@ const (
 	UpdateMetaDataError
 	GetMetaDataError
 	DeleteMetaDataError
+	ParameterInvalidError
+	ParameterTypeError
+	ParameterValueError
+	OperationFobidden
 )
 
 // 存储集群 cluster 操作异常
@@ -54,6 +58,7 @@ const (
 	DescribeClusterError ErrorCode = iota + 1532201
 	CreateClusterError
 	DeleteClusterError
+	GetClusterError
 	GetClusterStatusError
 	VerticalScalingError
 	HorizontalScalingError
@@ -85,6 +90,8 @@ const (
 	GetPodLogError
 	K8sAPIServerTimeoutError
 	GetPodDetailError
+	CreateK8sClientError
+	DeleteK8sPodError
 )
 
 // addon 管理操作异常
@@ -97,32 +104,37 @@ const (
 // 定义错误码对于的message
 var codeTag = map[ErrorCode]string{
 	// 纳管系统内置异常
-	AuthError:           "权限不足，请联系管理员",
-	ServerError:         "内部服务器出现错误",
-	EngineTypeError:     "数据库引擎类型有误",
-	AuthorizationError:  "签名信息有误",
-	ThirdAPIError:       "调用第三方 API 接口失败",
-	ResubmitError:       "请勿重复提交",
-	LoginError:          "登录失败",
-	LogoutError:         "注销失败",
-	CreateMetaDataError: "创建元数据失败",
-	UpdateMetaDataError: "更新元数据失败",
-	GetMetaDataError:    "获取元数据失败",
-	DeleteMetaDataError: "删除元数据失败",
+	AuthError:             "权限不足，请联系管理员",
+	ServerError:           "内部服务器出现错误",
+	EngineTypeError:       "数据库引擎类型有误",
+	AuthorizationError:    "签名信息有误",
+	ThirdAPIError:         "调用第三方 API 接口失败",
+	ResubmitError:         "请勿重复提交",
+	LoginError:            "登录失败",
+	LogoutError:           "注销失败",
+	CreateMetaDataError:   "创建元数据失败",
+	UpdateMetaDataError:   "更新元数据失败",
+	GetMetaDataError:      "获取元数据失败",
+	DeleteMetaDataError:   "删除元数据失败",
+	ParameterInvalidError: "参数校验失败",
+	ParameterTypeError:    "参数类型校验失败",
+	ParameterValueError:   "参数值校验失败",
+	OperationFobidden:     "禁止执行该操作",
 
 	// 存储集群操作异常
 	DescribeClusterError:      "查询集群失败",
 	CreateClusterError:        "创建集群失败",
+	GetClusterError:           "获取集群失败",
 	DeleteClusterError:        "删除集群失败",
 	GetClusterStatusError:     "查询集群状态失败",
 	GetClusterEventError:      "查询集群事件失败",
-	VerticalScalingError:      "集群水平扩缩容失败",
-	HorizontalScalingError:    "集群垂直扩缩容失败",
+	VerticalScalingError:      "集群垂直扩缩容失败",
+	HorizontalScalingError:    "集群水平扩缩容失败",
 	StartClusterError:         "集群启动失败",
 	StopClusterError:          "集群停止失败",
 	RestartClusterError:       "集群重启失败",
 	UpgradeClusterError:       "集群升级失败",
-	VolumeExpansionError:      "集群磁盘扩容失败",
+	VolumeExpansionError:      "集群磁盘扩缩容失败",
 	ExposeClusterError:        "集群暴露服务失败",
 	DescribeOpsRequestError:   "查询操作请求失败",
 	GetOpsRequestStatusError:  "查询操作请求状态失败",
@@ -136,6 +148,8 @@ var codeTag = map[ErrorCode]string{
 	GetPodLogError:           "获取 Pod 日志失败",
 	K8sAPIServerTimeoutError: "K8s API Server 请求超时",
 	GetPodDetailError:        "获取 Pod 详情失败",
+	CreateK8sClientError:     "获取 K8s Client 失败",
+	DeleteK8sPodError:        "删除实例节点失败",
 
 	// 存储插件部署操作异常
 	InstallAddonError:   "插件安装失败",

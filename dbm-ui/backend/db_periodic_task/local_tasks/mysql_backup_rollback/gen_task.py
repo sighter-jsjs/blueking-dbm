@@ -99,7 +99,7 @@ def calculate_min_disk_size(total_filesize: int) -> int:
     Returns:
         Minimum disk size required in GB
     """
-    min_disk_size = bytes_to_gb(total_filesize) * 4  # Double the backup size
+    min_disk_size = bytes_to_gb(total_filesize) * 6  # Double the backup size
     return int(max(min_disk_size, 200))  # Ensure minimum of 50GB
 
 
@@ -174,13 +174,18 @@ def gen_rollback_task():
             cluster_id=cluster.id,
             cluster_domain=backup_record.get("cluster_address", ""),
             cluster_type=cluster.cluster_type,
+            charset=backup_record.get("backup_charset", ""),
+            mysql_version=backup_record.get("mysql_version", ""),
+            sql_mode=backup_record.get("sql_mode", ""),
             backup_id=backup_id,
             backup_begin_time=backup_record["backup_begin_time"],
             backup_end_time=backup_record["backup_end_time"],
             backup_total_size=int(backup_file_size_gb),
-            backup_type=backup_record["backup_type"],
-            backup_tool=backup_record["backup_tool"],
-            time_zone=backup_record["time_zone"],
+            backup_host=backup_record.get("backup_host", ""),
+            backup_host_role=backup_record.get("mysql_role", ""),
+            backup_type=backup_record.get("backup_type", ""),
+            backup_tool=backup_record.get("backup_tool", ""),
+            time_zone=backup_record.get("time_zone", ""),
             task_id=root_id,
             task_status=TaskStatus.GENERATED,
             creator="system",

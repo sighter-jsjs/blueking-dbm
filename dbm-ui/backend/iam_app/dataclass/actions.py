@@ -1180,7 +1180,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1192,7 +1192,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1204,7 +1204,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1252,7 +1252,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.ES_ACCESS],
     )
@@ -1264,7 +1264,7 @@ class ActionEnum:
         type="execute",
         related_actions=[ES_VIEW.id],
         related_resource_types=[ResourceEnum.ES],
-        group=_("ES"),
+        group=_("ElasticSearch"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1585,6 +1585,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_SOURCE_ACCESS_VIEW = ActionMeta(
+        id="mongodb_source_access_view",
+        name=_("Mongodb 访问来源查询"),
+        name_en="mongodb_source_access_view",
+        type="view",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("集群管理"),
+        common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_APPLY = ActionMeta(
         id="mongodb_apply",
         name=_("MongoDB 部署"),
@@ -1851,7 +1863,7 @@ class ActionEnum:
         type="execute",
         related_actions=[ORACLE_VIEW.id],
         related_resource_types=[ResourceEnum.ORACLE],
-        group=_("ORACLE"),
+        group=_("Oracle"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -1863,7 +1875,7 @@ class ActionEnum:
         type="execute",
         related_actions=[ORACLE_VIEW.id],
         related_resource_types=[ResourceEnum.ORACLE],
-        group=_("ORACLE"),
+        group=_("Oracle"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )

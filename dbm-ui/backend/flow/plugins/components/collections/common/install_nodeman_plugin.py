@@ -67,18 +67,22 @@ class InstallNodemanPluginService(BaseService):
         raw_response = BKNodeManApi.job_details._send(params={"job_id": job_id}, headers={})
         # 检查网络状态
         if raw_response.status_code == self.HTTP_STATUS_OK:
-            # 网络请求成功，解析响应内容
-            response = raw_response.json()
-            status = response["data"]["status"]
-            if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
-                self.log_info(f"installing plugin, job id is {job_id}")
-                return True
-            if status == BKNodeManApi.JobStatusType.SUCCESS:
-                self.log_info("install plugin successfully")
-                self.finish_schedule()
-                return True
-            else:
-                self.log_error("install plugin failed")
+            try:
+                # 网络请求成功，解析响应内容
+                response = raw_response.json()
+                status = response.get("data", {}).get("status")
+                if status in BKNodeManApi.JobStatusType.PROCESSING_STATUS:
+                    self.log_info(f"installing plugin, job id is {job_id}")
+                    return True
+                if status == BKNodeManApi.JobStatusType.SUCCESS:
+                    self.log_info("install plugin successfully")
+                    self.finish_schedule()
+                    return True
+                else:
+                    self.log_error("install plugin failed")
+                    return False
+            except (KeyError, TypeError, ValueError) as e:
+                self.log_error(_("解析响应出错: {}，响应内容: {}").format(str(e), raw_response.text))
                 return False
         elif raw_response.status_code in self.RETRY_ERROR_CODES:
             retry_count += 1
@@ -87,7 +91,7 @@ class InstallNodemanPluginService(BaseService):
                 self.log_info(f"retrying job {job_id}, retry count: {retry_count}")
                 return True
             else:
-                self.log_error(f"已经达到最大重试次数{retry_count}次")
+                self.log_error(_("已经达到最大重试次数{}次").format(max_retries))
                 return False
         else:
             self.log_error(

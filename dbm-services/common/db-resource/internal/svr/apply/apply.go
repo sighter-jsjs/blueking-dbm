@@ -340,7 +340,7 @@ func (o *SearchContext) PickCheck() (err error) {
 
 	if int(count) < o.Count {
 		reason := o.predictResourceNoMatchReason()
-		err = fmt.Errorf("申请需求:%s\n\r资源池符合条件的资源总数:%d 小于申请的数量\n\r: 推测的原因可能是以下:%s", o.GetMessage(), count, reason)
+		err = fmt.Errorf("申请需求:\n%s 资源池符合条件的资源总数%d 小于申请的数量\n\n 推测的原因可能是以下:\n %s", o.GetMessage(), count, reason)
 		logger.Error("%s", err.Error())
 		return err
 	}
@@ -674,6 +674,12 @@ func (o *SearchContext) MatchLocationSpec(db *gorm.DB) {
 		db.Where("sub_zone_id not in (?)", o.LocationSpec.SubZoneIds)
 	} else {
 		db.Where("sub_zone_id in (?)", o.LocationSpec.SubZoneIds)
+	}
+	if len(o.LocationSpec.ExcludeRackIds) > 0 {
+		db.Where("rack_id not in (?)", o.LocationSpec.ExcludeRackIds)
+	}
+	if len(o.LocationSpec.ExcludeNetDeviceIds) > 0 {
+		db.Where("net_device_id not in (?)", o.LocationSpec.ExcludeNetDeviceIds)
 	}
 }
 

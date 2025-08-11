@@ -31,6 +31,7 @@ import (
 	coreconst "k8s-dbs/core/constant"
 	coreentity "k8s-dbs/core/entity"
 	coreutil "k8s-dbs/core/util"
+	dbserrors "k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
 	metaprovider "k8s-dbs/metadata/provider"
 	metautil "k8s-dbs/metadata/util"
@@ -56,6 +57,45 @@ type K8sProvider struct {
 	reqRecordProvider     metaprovider.ClusterRequestRecordProvider
 	clusterConfigProvider metaprovider.K8sClusterConfigProvider
 	clusterMetaProvider   metaprovider.K8sCrdClusterProvider
+}
+
+// DeletePod 删除 pod
+func (k *K8sProvider) DeletePod(
+	ctx *commentity.DbsContext,
+	entity *coreentity.K8sPodDelete,
+) error {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.GetMetaDataError, err)
+	}
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	ctx.K8sClusterName = k8sClusterConfig.ClusterName
+	ctx.Namespace = entity.Namespace
+	ctx.ClusterName = entity.ClusterName
+	// 记录审计日志
+	_, err = metautil.SaveCommonAuditV2(k.reqRecordProvider, ctx, entity)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+
+	ctx.K8sClusterConfigID = k8sClusterConfig.ID
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateK8sClientError, err)
+	}
+	deletePolicy := metav1.DeletePropagationForeground
+	err = k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).Delete(context.TODO(), entity.PodName, metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	})
+	if err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.DeleteK8sPodError, err)
+	}
+
+	// 更新集群 cluster 记录
+	if err = metautil.UpdateClusterLastUpdatedV2(k.clusterMetaProvider, ctx); err != nil {
+		return dbserrors.NewK8sDbsError(dbserrors.CreateMetaDataError, err)
+	}
+	return nil
 }
 
 // CreateNamespace 创建命名空间
@@ -118,38 +158,34 @@ func (k *K8sProvider) CreateNamespace(
 	return &responseEntity, nil
 }
 
+// GetPodRawLogs 获取 pod 原始日志
+func (k *K8sProvider) GetPodRawLogs(entity *coreentity.K8sPodLogQueryParams) (string, error) {
+	stream, err := k.buildLogStream(entity)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := stream.Close(); err != nil {
+			slog.Error("failed to close log stream",
+				"namespace", entity.Namespace,
+				"pod", entity.PodName,
+				"err", err,
+			)
+		}
+	}()
+
+	logs, err := io.ReadAll(stream)
+	return string(logs), err
+}
+
 // ListPodLogs 获取 pod 日志
 func (k *K8sProvider) ListPodLogs(
 	entity *coreentity.K8sPodLogQueryParams,
 	pagination *entity.Pagination,
 ) ([]*coreentity.K8sLog, uint64, error) {
-	// 1. 获取集群配置
-	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	stream, err := k.buildLogStream(entity)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get k8sClusterConfig for cluster %q: %w", entity.K8sClusterName, err)
-	}
-
-	// 2. 创建 Kubernetes Client
-	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to create k8sClient for cluster %q: %w", entity.K8sClusterName, err)
-	}
-
-	// 3. 构造日志选项
-	logOptions := &corev1.PodLogOptions{
-		Container:  entity.Container,
-		Follow:     false,
-		Timestamps: true,
-		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
-		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
-	}
-
-	// 4. 获取日志流
-	podLogReq := k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).GetLogs(entity.PodName, logOptions)
-	stream, err := podLogReq.Stream(context.TODO())
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to stream logs for pod %q in namespace %q: %w",
-			entity.PodName, entity.Namespace, err)
+		return nil, 0, err
 	}
 	defer func() {
 		if err := stream.Close(); err != nil {
@@ -174,6 +210,36 @@ func (k *K8sProvider) ListPodLogs(
 		return nil, 0, err
 	}
 	return logs, count, nil
+}
+
+// buildLogStream 构建日志流
+func (k *K8sProvider) buildLogStream(entity *coreentity.K8sPodLogQueryParams) (io.ReadCloser, error) {
+	k8sClusterConfig, err := k.clusterConfigProvider.FindConfigByName(entity.K8sClusterName)
+	if err != nil {
+		return nil, err
+	}
+	k8sClient, err := commutil.NewK8sClient(k8sClusterConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// 构造日志选项
+	logOptions := &corev1.PodLogOptions{
+		Container:  entity.Container,
+		Follow:     false,
+		Timestamps: true,
+		LimitBytes: commutil.Int64Ptr(MaxPodLogSize),
+		TailLines:  commutil.Int64Ptr(MaxPodLogLines),
+		Previous:   entity.Previous,
+	}
+
+	// 获取日志流
+	podLogReq := k8sClient.ClientSet.CoreV1().Pods(entity.Namespace).GetLogs(entity.PodName, logOptions)
+	stream, err := podLogReq.Stream(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+	return stream, nil
 }
 
 // GetPodDetail 获取 pod 详情
