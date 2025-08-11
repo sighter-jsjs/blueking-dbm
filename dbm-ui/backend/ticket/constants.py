@@ -223,6 +223,15 @@ class TicketType(str, StructuredEnum):
             return ItsmApproveMode.CounterSign.value
         return ItsmApproveMode.OrSign.value
 
+    @classmethod
+    def get_field_by_value(cls, value: str):
+        """根据枚举值获取字段对象"""
+        members = cls.get_field_members()
+        for field in members.values():
+            if value == field.real_value:
+                return field
+        return None
+
     # fmt: off
     # MYSQL
     MYSQL_SINGLE_APPLY = TicketEnumField("MYSQL_SINGLE_APPLY", _("MySQL 单节点部署"), register_iam=False)
