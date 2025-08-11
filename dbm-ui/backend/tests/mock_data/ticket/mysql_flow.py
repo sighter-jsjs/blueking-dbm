@@ -782,3 +782,23 @@ MYSQL_SPEC_DATA = [
         "qps": {},
     },
 ]
+
+MYSQL_CLB_BIND_DOMAIN = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "cluster_id": CLUSTER_ID,
+        "bk_cloud_id": 0,
+    },
+    "ticket_type": "MYSQL_CLB_BIND_DOMAIN",
+    "remark": "",
+}
+
+MYSQL_CLB_UNBIND_DOMAIN = {
+    "bk_biz_id": BK_BIZ_ID,
+    "details": {
+        "cluster_id": CLUSTER_ID,
+        "bk_cloud_id": 0,
+    },
+    "ticket_type": "MYSQL_CLB_BIND_DOMAIN",
+    "remark": "",
+}
