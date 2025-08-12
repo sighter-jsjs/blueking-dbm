@@ -189,7 +189,8 @@ class TicketType(str, StructuredEnum):
     def get_ticket_type_by_db(cls, db_type):
         """找到相关type的单据"""
         db_type = db_type.upper()
-        ticket_types = [t for t in cls.get_values() if db_type in t]
+        # 通过value.upper()_来匹配数据库类型前缀,避免ES出现杂项
+        ticket_types = [t for t in cls.get_values() if t.upper().startswith(f"{db_type.upper()}_")]
         return ticket_types
 
     @classmethod
