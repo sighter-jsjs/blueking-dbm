@@ -8,17 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import itertools
-
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from rest_framework import serializers
 
 from backend import env
-from backend.components.dbresource.client import DBResourceApi
 from backend.components.hcm.client import HCMApi
 from backend.components.xwork.client import XworkApi
-from backend.configuration.constants import DBType
+from backend.configuration.constants import DBType, SystemSettingsEnum
+from backend.configuration.models import SystemSettings
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
@@ -157,7 +155,10 @@ class ResourceListSerializer(serializers.Serializer):
                     attrs[field] = list(map(int, attrs[field]))
                 # cpu, mem, disk 需要转换为结构体
                 elif field in ["mem"]:
-                    attrs[field] = {"min": float(attrs[field][0] or 0), "max": float(attrs[field][1] or INT_MAX)}
+                    attrs[field] = {
+                        "min": int(attrs[field][0] or 0) * 1024,
+                        "max": int(attrs[field][1] or INT_MAX) * 1024,
+                    }
                 elif field in ["cpu", "disk"]:
                     attrs[field] = {"min": int(attrs[field][0] or 0), "max": int(attrs[field][1] or INT_MAX)}
 
@@ -167,6 +168,13 @@ class ResourceListSerializer(serializers.Serializer):
             tag_str_ids = [str(tag_id) for tag_id in tag_ids]
             attrs["labels"] = tag_str_ids
 
+        # 城市如果是default, 则不需要传default
+        if "default" in attrs.get("city", []):
+            attrs["city"].remove("default")
+            if not attrs["city"]:
+                attrs.pop("city")
+
+        spec_offset = SystemSettings.get_setting_value(SystemSettingsEnum.SPEC_OFFSET)
         # 转换规格查询参数
         if attrs.get("spec_id"):
             spec = Spec.objects.get(spec_id=attrs["spec_id"])
@@ -174,7 +182,7 @@ class ResourceListSerializer(serializers.Serializer):
                 {
                     "mount_point": storage_spec["mount_point"],
                     "disk_type": "" if storage_spec["type"] == "ALL" else storage_spec["type"],
-                    "min": storage_spec["size"],
+                    "min": storage_spec["size"] - spec_offset["disk"],
                     "max": INT_MAX,
                 }
                 for storage_spec in spec.storage_spec
@@ -182,11 +190,11 @@ class ResourceListSerializer(serializers.Serializer):
             if spec.device_class:
                 attrs["device_class"] = spec.device_class
             else:
-                attrs["cpu"], attrs["mem"] = spec.cpu, spec.mem
-
-        # 转换内存查询单位, GB --> MB
-        if attrs.get("mem"):
-            attrs["mem"] = {"min": int(attrs["mem"]["min"] * 1024), "max": int(attrs["mem"]["max"] * 1024)}
+                attrs["cpu"] = spec.cpu
+                attrs["mem"] = {
+                    "min": max(int(spec.mem["min"] * 1024 - spec_offset["mem"]), 0),
+                    "max": int(spec.mem["max"] * 1024),
+                }
 
         # 格式化agent参数
         attrs["gse_agent_alive"] = str(attrs.get("agent_status", "")).lower()
@@ -528,16 +536,6 @@ class ListCvmDeviceClassSerializer(serializers.ModelSerializer):
 class AppendHostLabelSerializer(serializers.Serializer):
     bk_host_ids = serializers.ListField(help_text=_("主机ID列表"), child=serializers.IntegerField())
     labels = serializers.ListField(help_text=_("追加标签列表"), child=serializers.CharField())
-
-    def validate(self, attrs):
-        host_ips = Machine.objects.filter(bk_host_id__in=attrs["bk_host_ids"]).values_list("ip", flat=True)
-        params = {"hosts": list(host_ips), "limit": len(list(host_ips)), "offset": 0}
-        resource_data = DBResourceApi.resource_list(params=params)
-        label_ids = itertools.chain(*[data["labels"] for data in resource_data["details"] if data["labels"]])
-        label_ids = [int(id) for id in label_ids if isinstance(id, int) or id.isdigit()]
-        if set(attrs["labels"]).isdisjoint(label_ids):
-            raise serializers.ValidationError(_("请勿给主机添加重复标签"))
-        return attrs
 
 
 class CheckFaultHostsSerializer(serializers.Serializer):

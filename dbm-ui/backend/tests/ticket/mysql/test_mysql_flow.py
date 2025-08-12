@@ -32,6 +32,8 @@ from backend.tests.mock_data.ticket.mysql_flow import (
     MYSQL_ADD_SLAVE_DATA,
     MYSQL_AUTHORIZE_TICKET_DATA,
     MYSQL_CHECKSUM_DATA,
+    MYSQL_CLB_BIND_DOMAIN,
+    MYSQL_CLB_UNBIND_DOMAIN,
     MYSQL_CLUSTER_DATA,
     MYSQL_DATA_MIGRATE_DATA,
     MYSQL_DELETE_CLEAR_DB_DATA,
@@ -190,3 +192,9 @@ class TestMySQLTicket(BaseTicketTest):
         invalid_labels = set(exclusive_matrix.keys()) - set(TicketType.get_labels())
         logger.warning("invalid_labels is %s", invalid_labels)
         assert len(invalid_labels) == 0
+
+    def test_mysql_clb_bind_domain(self):
+        self.flow_test(MYSQL_CLB_BIND_DOMAIN)
+
+    def test_mysql_clb_unbind_domain(self):
+        self.flow_test(MYSQL_CLB_UNBIND_DOMAIN)
