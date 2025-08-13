@@ -31,8 +31,6 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           bk_host_id: number;
           ip: string;
         }[];
-        label_names: string[]; // 标签名称列表，单据详情回显用
-        labels: string[]; // 标签id列表
         spec_id: number;
       };
       new_slave: {
@@ -43,8 +41,6 @@ export interface MigrateCluster extends ResourcePoolDetailBase {
           bk_host_id: number;
           ip: string;
         }[];
-        label_names: string[]; // 标签名称列表，单据详情回显用
-        labels: string[]; // 标签id列表
         spec_id: number;
       };
     };
