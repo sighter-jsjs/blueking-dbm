@@ -29,17 +29,10 @@ logger = logging.getLogger("root")
 class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
     """MySQL备份恢复任务视图集"""
 
-    queryset = MySQLBackupRecoverTask.objects.all()
+    queryset = MySQLBackupRecoverTask.objects.all().order_by("-create_at")
     serializer_class = MySQLBackupRecoverTaskSerializer
     report_type = ReportType.MYSQL_BACKUP_RECOVER_TASK
     report_name = _("MySQL备份恢复任务")
-    # 重写 filter_fields，移除 status 字段，因为 MySQLBackupRecoverTask 模型没有这个字段
-    filter_fields = {
-        "bk_biz_id": ["exact"],
-        "cluster_type": ["exact", "in"],
-        "create_at": ["gte", "lte"],
-        "task_status": ["exact", "in"],  # 使用 task_status 替代 status
-    }
     report_title = [
         {
             "name": "bk_biz_id",
@@ -78,7 +71,7 @@ class MySQLBackupRecoverTaskViewSet(ReportBaseViewSet):
         },
         {
             "name": "recover_duration",
-            "display_name": _("恢复花费时间(分钟)"),
+            "display_name": _("恢复花费时间(小时)"),
             "format": ReportFieldFormat.TEXT.value,
         },
         {
