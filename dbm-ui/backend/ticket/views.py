@@ -393,18 +393,23 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         for db_type in DBType:
             children = []
             # 获取该DB类型的所有单据键值
-            ticket_keys = TicketType.get_ticket_type_by_db(db_type.value)
+            ticket_keys = TicketType.get_ticket_type_by_db(db_type)
 
             # 遍历每个单据键值，获取其详细信息
             for ticket_key in ticket_keys:
                 # 获取该单据的枚举字段对象
-                ticket_field = TicketType.get_field_by_value(ticket_key)
+                ticket_field = TicketType.get_choice_label(ticket_key)
 
-                if ticket_field:
-                    # 检查是否满足过滤条件
-                    if not is_apply or ticket_key in BuilderFactory.apply_ticket_type:
-                        children.append({"label": ticket_field.label, "value": ticket_key})
-            ticket_type_list.append({"children": children, "label": db_type, "value": db_type.value})
+                # 检查是否满足过滤条件
+                if not is_apply or ticket_key in BuilderFactory.apply_ticket_type:
+                    children.append({"label": ticket_field, "value": ticket_key})
+            ticket_type_list.append(
+                {
+                    "children": children,
+                    "label": DBType.get_choice_label(db_type),
+                    "value": DBType.get_choice_label(db_type),
+                }
+            )
 
         return Response(ticket_type_list)
 
