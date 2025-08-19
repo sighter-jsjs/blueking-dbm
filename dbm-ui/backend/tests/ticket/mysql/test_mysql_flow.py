@@ -21,6 +21,8 @@ from django.core.cache import cache
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, ProxyInstance, Spec, StorageInstance
+from backend.flow.engine.bamboo.scene.mysql.mysql_authorize_rules import MySQLAuthorizeRulesFlows
+from backend.flow.engine.bamboo.scene.name_service.mysql_clb_operation import MySQLClbFlow
 from backend.flow.models import FlowNode, FlowTree
 from backend.tests.mock_data.components.cc import CCApiMock
 from backend.tests.mock_data.components.dbconfig import DBConfigApiMock
@@ -135,7 +137,9 @@ class TestMySQLTicket(BaseTicketTest):
         cache.set(authorize_uid, MYSQL_ITSM_AUTHORIZE_TICKET_DATA)
         authorize_data = copy.deepcopy(MYSQL_AUTHORIZE_TICKET_DATA)
         authorize_data["details"]["authorize_uid"] = authorize_uid
-        self.flow_test(authorize_data)
+        self.flow_test(
+            ticket_data=authorize_data, flow_class=MySQLAuthorizeRulesFlows, flow_method="authorize_mysql_rules_v2"
+        )
         cache.delete(authorize_uid)
 
     def test_mysql_master_slave_switch_flow(self):
@@ -194,7 +198,15 @@ class TestMySQLTicket(BaseTicketTest):
         assert len(invalid_labels) == 0
 
     def test_mysql_clb_bind_domain(self):
-        self.flow_test(MYSQL_CLB_BIND_DOMAIN)
+        self.flow_test(
+            ticket_data=MYSQL_CLB_BIND_DOMAIN,
+            flow_class=MySQLClbFlow,
+            flow_method="immute_domain_bind_clb_ip",
+        )
 
     def test_mysql_clb_unbind_domain(self):
-        self.flow_test(MYSQL_CLB_UNBIND_DOMAIN)
+        self.flow_test(
+            ticket_data=MYSQL_CLB_UNBIND_DOMAIN,
+            flow_class=MySQLClbFlow,
+            flow_method="immute_domain_unbind_clb_ip",
+        )
