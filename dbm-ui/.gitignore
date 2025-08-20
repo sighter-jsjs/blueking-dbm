@@ -138,3 +138,5 @@ scripts/ssls/
 
 # 版本文件
 version_logs_html/
+
+echo "local.env" >> ../.gitignore  # 添加忽略规则
