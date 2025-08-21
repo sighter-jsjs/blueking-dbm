@@ -129,6 +129,8 @@ class Todo(AuditedModel):
     def set_terminated(self, username, action):
         self.set_status(username, TodoStatus.DONE_FAILED)
         self.flow.update_status(TicketFlowStatus.TERMINATED)
+        self.ticket.updater = username
+        self.ticket.save(update_fields=["updater", "update_at"])
         TodoHistory.objects.create(creator=username, todo=self, action=action)
 
 
