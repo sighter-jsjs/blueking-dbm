@@ -47,17 +47,22 @@ class TicketListFilter(filters.FilterSet):
 
     def filter_todo(self, queryset, name, value):
         user = self.request.user.username
+
         if value == "running":
-            subquery = Todo.objects.filter(
-                Q(operators__contains=user) | Q(helpers__contains=user),
-                status__in=TODO_RUNNING_STATUS,
-                ticket_id=OuterRef("id"),
+            # 筛选操作员/协助者+运行中状态
+            todo_subquery = Todo.objects.filter(
+                Q(operators__contains=user) | Q(helpers__contains=user), status__in=TODO_RUNNING_STATUS
             )
-            todo_filter = Exists(subquery)
         else:
-            subquery = Todo.objects.filter(done_by=user, ticket_id=OuterRef("id"))
-            todo_filter = Exists(subquery)
-        return queryset.filter(todo_filter)
+            # 筛选已完成的todo
+            todo_subquery = Todo.objects.filter(done_by=user)
+
+        # 获取相关的ticket_id列表
+        ticket_ids = list(
+            todo_subquery.values_list("ticket_id", flat=True).distinct().order_by("-ticket_id").iterator()
+        )
+
+        return queryset.filter(id__in=ticket_ids).order_by("-id")
 
     def filter_is_assist(self, queryset, name, value):
         user = self.request.user.username
