@@ -10,11 +10,10 @@ specific language governing permissions and limitations under the License.
 """
 import uuid
 from typing import Any, Dict, List, Type
-from unittest.mock import patch
 
 from django.test import TestCase
 
-from backend.tests.mock_data.components.engine_run_pipeline import EngineApiMock
+from backend.tests.utils.pipeline_test_utils import PipelineTestUtils
 
 
 class BasePipelineTest(TestCase):
@@ -58,82 +57,15 @@ class BasePipelineTest(TestCase):
         Returns:
             Any: 流程方法的返回值
         """
-
-        # 创建流程实例
-        flow_instance = flow_class(root_id=self.root_id, data=mock_data, **(additional_params or {}))
-
-        # 重置EngineApiMock的状态
-        EngineApiMock.was_called = False
-        EngineApiMock.last_result = None
-        EngineApiMock.last_exception = None
-
-        # 准备所有需要模拟的对象
-        patchers = []
-
-        # 添加默认的pipeline mock
-        patchers.append(patch("bamboo_engine.api.run_pipeline", side_effect=EngineApiMock.run_pipeline))
-
-        # 添加额外的模拟对象
-        if additional_mocks:
-            for mock_config in additional_mocks:
-                target = mock_config.get("target")
-                side_effect = mock_config.get("side_effect")
-                return_value = mock_config.get("return_value")
-
-                if side_effect:
-                    patchers.append(patch(target, side_effect=side_effect))
-                elif return_value is not None:
-                    patchers.append(patch(target, return_value=return_value))
-                else:
-                    # 如果没有指定side_effect或return_value，则使用MagicMock
-                    from unittest.mock import MagicMock
-
-                    patchers.append(patch(target, new=MagicMock()))
-
-        # 启动所有patchers
-        [patcher.start() for patcher in patchers]
-
-        try:
-            # 获取要测试的方法
-            flow_method_to_test = getattr(flow_instance, flow_method)
-
-            # 执行流程方法（可能返回None，即使成功）
-            result = flow_method_to_test()
-
-            # 检查EngineApiMock是否被调用
-            self.assertTrue(EngineApiMock.was_called, "Pipeline engine should be called")
-
-            # 验证执行结果
-            if expect_failure:
-                self.assertFalse(EngineApiMock.last_result.result, "Pipeline validation should fail")
-                if expected_error_message:
-                    self.assertIn(
-                        expected_error_message,
-                        EngineApiMock.last_result.message,
-                        f"Expected error message '{expected_error_message}' not found in actual message: "
-                        f"'{EngineApiMock.last_result.message}'",
-                    )
-            else:
-                self.assertTrue(
-                    EngineApiMock.last_result.result,
-                    f"Pipeline validation should pass, but failed with message: "
-                    f"{EngineApiMock.last_result.message}",
-                )
-
-            return result
-
-        except Exception as e:
-            if expect_failure:
-                if expected_error_message:
-                    self.assertIn(
-                        expected_error_message,
-                        str(e),
-                        f"Expected error message '{expected_error_message}' not found in actual exception: '{str(e)}'",
-                    )
-                return None
-            else:
-                raise
-        finally:
-            # 停止所有patchers
-            for patcher in patchers:
-                patcher.stop()
+        return PipelineTestUtils.execute_pipeline_test(
+            flow_class=flow_class,
+            flow_method=flow_method,
+            root_id=self.root_id,
+            mock_data=mock_data,
+            additional_params=additional_params,
+            additional_mocks=additional_mocks,
+            expect_failure=expect_failure,
+            expected_error_message=expected_error_message,
+            assertion_style="unittest",
+            test_case_instance=self,
+        )
