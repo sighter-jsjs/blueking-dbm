@@ -25,6 +25,7 @@ class TicketListFilter(filters.FilterSet):
     todo = filters.CharFilter(field_name="todo", method="filter_todo", label=_("代办状态"))
     ordering = filters.CharFilter(field_name="ordering", method="order_ticket", label=_("排序字段"))
     is_assist = filters.BooleanFilter(field_name="is_assist", method="filter_is_assist", label=_("是否协助"))
+    bk_biz_ids = filters.CharFilter(field_name="bk_biz_ids", method="filter_bk_biz_ids", label=_("业务ID列表(逗号分隔)"))
 
     class Meta:
         model = Ticket
@@ -90,6 +91,12 @@ class TicketListFilter(filters.FilterSet):
         # 其他状态，直接in即可
         status_filter |= Q(status__in=status)
         return queryset.filter(status_filter)
+
+    def filter_bk_biz_ids(self, queryset, name, value):
+        """处理多个业务ID的过滤，支持逗号分隔的字符串"""
+        # 将逗号分隔的字符串转换为整数列表
+        biz_ids = [int(x.strip()) for x in value.split(",") if x.strip()]
+        return queryset.filter(bk_biz_id__in=biz_ids)
 
     def order_ticket(self, queryset, name, value):
         return queryset.order_by(value)
