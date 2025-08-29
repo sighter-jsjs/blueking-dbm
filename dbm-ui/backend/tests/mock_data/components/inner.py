@@ -32,4 +32,4 @@ def mock_inner_flow_run(self) -> Any:
     controller_module = importlib.import_module(controller_info["module"])
     controller_class = getattr(controller_module, controller_info["class_name"])
     controller_inst = controller_class(root_id=root_id, ticket_data=flow_details["ticket_data"])
-    getattr(controller_inst, controller_info["func_name"])()
+    return getattr(controller_inst, controller_info["func_name"])()
