@@ -21,6 +21,7 @@ from backend.tests.mock_data.ticket.hdfs_flow import (
     HDFS_SCALE_UP_DATA,
     HDFS_SPEC_DATA,
 )
+from backend.tests.ticket.decorator import use_simple_mock
 from backend.tests.ticket.server_base import BaseTicketTest
 
 logger = logging.getLogger("test")
@@ -39,6 +40,7 @@ def setup_hdfs_database(django_db_setup, django_db_blocker):
         Spec.objects.filter(spec_cluster_type=DBType.Hdfs).delete()
 
 
+# API都没有mock
 class TestHdfsFlow(BaseTicketTest):
     """
     hdfs测试类
@@ -52,6 +54,7 @@ class TestHdfsFlow(BaseTicketTest):
         # hdfs集群部署
         self.flow_test(HDFS_APPLY_DATA)
 
+    @use_simple_mock
     def test_hdfs_scale_up_flow(self):
         # hdfs扩容
         self.flow_test(HDFS_SCALE_UP_DATA)

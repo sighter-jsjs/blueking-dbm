@@ -197,4 +197,6 @@ class TestMySQLTicket(BaseTicketTest):
         self.flow_test(MYSQL_CLB_BIND_DOMAIN)
 
     def test_mysql_clb_unbind_domain(self):
-        self.flow_test(MYSQL_CLB_UNBIND_DOMAIN)
+        self.flow_test(
+            MYSQL_CLB_UNBIND_DOMAIN,
+        )
