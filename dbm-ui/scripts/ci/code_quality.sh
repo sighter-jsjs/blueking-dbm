@@ -24,6 +24,7 @@ TEST_TIME=$(echo $TEST_RESULT  | sed 's/.* \([0-9]*\.[0-9]*\)s.*/\1/g')
 
 echo $TEST_RESULT
 
+TEST_COVERAGE=$(echo "$TEST_LOGS" | grep "^TOTAL" | sed 's/.*[[:space:]]\([0-9]*%\)$/\1/')
 TEST_FAILURE=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* failed.*/\1/p')
 TEST_ERROR=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* errors.*/\1/p')
 TEST_SUCCESS=$(echo $TEST_RESULT  | sed -n 's/.* \([0-9]*\).* passed.*/\1/p')
@@ -39,6 +40,7 @@ TEST_COUNT=$[$TEST_SUCCESS+$TEST_FAILURE+$TEST_SKIP+$TEST_ERROR]
 TEST_NOT_SUCCESS_COUNT=$[$TEST_FAILURE+$TEST_ERROR]
 
 echo "测试时长: $TEST_TIME 秒"
+echo "单元测试覆盖率: $TEST_COVERAGE"
 echo "单元测试数: $TEST_COUNT"
 echo "成功数: $TEST_SUCCESS"
 echo "失败数: $TEST_FAILURE"
