@@ -285,6 +285,7 @@ from backend.flow.views.tendb_cluster_remote_slave_recover import RemoteSlaveRec
 from backend.flow.views.tendb_cluster_remote_switch import RemoteSwitchSceneApiView
 from backend.flow.views.tendb_cluster_rollback_data import TendbClusterRollbackDataSceneApiView
 from backend.flow.views.tendbcluster_upgrade import (
+    SpiderKeywordCheckSceneApiView,
     UpgradeTendbClusterRemoteSceneApiView,
     UpgradeTendbClusterSpiderSceneApiView,
 )
@@ -394,6 +395,7 @@ urlpatterns = [
     # tendbcluster upgrade
     url(r"^scene/tendbcluster/upgrade_spider$", UpgradeTendbClusterSpiderSceneApiView.as_view()),
     url(r"^scene/tendbcluster/upgrade_remote$", UpgradeTendbClusterRemoteSceneApiView.as_view()),
+    url(r"^scene/tendbcluster/spider_keyword_check$", SpiderKeywordCheckSceneApiView.as_view()),
     # mysql clb operation
     url(r"^scene/mysql/clb_create$", MysqlClbCreateSceneApiView.as_view()),
     url(r"^scene/mysql/clb_delete$", MysqlClbDeleteSceneApiView.as_view()),
