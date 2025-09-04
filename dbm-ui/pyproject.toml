@@ -45,11 +45,11 @@ django-cors-headers = "3.9"
 django-redis = "^5.2.0"
 pygtrans = "^1.4.0"
 astunparse = "^1.6.3"
-blueapps = { version = "4.11.0", extras = ["opentelemetry"]}
+blueapps = {version = "4.16.rc1", extras = ["bkcrypto", "opentelemetry"]}
 pyinstrument = "3.4.2"
 mistune = "0.8.4"
 bkoauth = "0.1.0"
-apigw-manager = {version = "3.1.2", extras = ["cryptography"]}
+apigw-manager = {version = "4.0.1", extras = ["cryptography"]}
 bk-audit = "1.1.0rc0"
 bk-crypto-python-sdk = "1.1.1"
 django-environ = "^0.11.2"
@@ -61,15 +61,12 @@ protobuf = "3.19.6"
 promql-parser = "0.3.3"
 chardet = "^5.2.0"
 django-debug-toolbar = "3.8.1"
-setuptools = "78.1.1"
+setuptools = "^74.1.2"
 gevent = "^24.2.1"
 django-dynamic-raw-id = "^4.3"
 aiokafka = "^0.12.0"
 kafka-python = "^2.2.12"
-virtualenv = "20.26.6"
-future = "0.18.3"
 
-cos-python-sdk-v5 = "^1.9.38"
 [tool.poetry.dev-dependencies]
 flake8 = "7.1.1"
 pytest = "6.2.4"

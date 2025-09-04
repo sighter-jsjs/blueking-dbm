@@ -19,6 +19,7 @@ from typing import Any, Dict, List, Optional, Union
 from bamboo_engine import states
 from django.utils import translation
 from django.utils.translation import ugettext as _
+from pipeline.core.data.base import DataObject
 from pipeline.core.flow.activity import Service, StaticIntervalGenerator
 
 from backend import env
@@ -176,9 +177,40 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
         # 返回响应
         return ExcelHandler.response(wb, excel_name)
 
+    def _get_tenant_id(self, global_data):
+        """
+        获取租户ID
+        1.pipeline 输入参数中有租户id
+        2.pipeline 输入参数中有业务id，则从业务id获取租户id
+        3.当前local线程中有租户id
+        """
+        from backend.db_meta.models.app import TenantCache
+        from backend.utils.local import local
+
+        # Step 1: 尝试从输入数据获取 tenant_id
+        if "tenant_id" in global_data:
+            local.inject_tenant_id(global_data["tenant_id"])
+            return global_data["tenant_id"]
+
+        if "bk_biz_id" in global_data:
+            tenant_id = TenantCache.get_tenant_with_app(str(global_data["bk_biz_id"]))
+            local.inject_tenant_id(tenant_id)
+            return tenant_id
+        if local.tenant_id:
+            return local.tenant_id
+        self.log_warning(_("无法获取当前请求的租户ID"))
+
+    def active_tenant(self, data: DataObject):
+        tenant_id = self._get_tenant_id(data.get_one_of_inputs("global_data"))
+        # 获取输入参数
+        inputs_data = data.get_inputs()
+        inputs_data["global_data"]["tenant_id"] = tenant_id
+        # 更新到data对象中
+        data.override_inputs(inputs_data)
+
     def execute(self, data, parent_data):
         self.active_language(data)
-
+        self.active_tenant(data)
         kwargs = data.get_one_of_inputs("kwargs") or {}
         try:
             result = self._execute(data, parent_data)
@@ -195,7 +227,7 @@ class BaseService(Service, ServiceLogMixin, metaclass=ABCMeta):
 
     def schedule(self, data, parent_data, callback_data=None):
         self.active_language(data)
-
+        self.active_tenant(data)
         kwargs = data.get_one_of_inputs("kwargs") or {}
         try:
             result = self._schedule(data, parent_data, callback_data)

@@ -213,22 +213,7 @@ DEBUG_REVERSE_API = get_type_env(key="DEBUG_REVERSE_API", _type=bool, default=Fa
 REVERSE_REPORT_KAFKA_OPTIONS = get_type_env(
     key="REVERSE_REPORT_KAFKA_OPTIONS", _type=dict, default={"bootstrap_servers": ":9092"}
 )
-# mysql备份恢复演习业务
-MYSQL_BACKUPRECOVER_BIZ_ID = get_type_env(key="MYSQL_BACKUPRECOVER_BIZ_ID", _type=int, default=20)
-# 演习业务获取资源的标签ID
-MYSQL_BACKUPRECOVER_MCH_LABELS_ID = get_type_env(key="MYSQL_BACKUPRECOVER_MCH_LABELS_ID", _type=str, default="10")
 
-# 大数据使用的腾讯云账号ID
-BIGDATA_CLOUD_ACCOUNT_ID = get_type_env(key="BIGDATA_CLOUD_ACCOUNT_ID", _type=str, default="")
-# 管理存储桶资源使用的海垒账号ID
-HCM_COS_ACCOUNT_ID = get_type_env(key="HCM_COS_ACCOUNT_ID", _type=str, default="")
-
-# COS内网访问域名模板
-COS_INTERNAL_ENDPOINT_TMPL = get_type_env(key="COS_INTERNAL_ENDPOINT_TMPL", _type=str, default="")
-# COS 服务域名
-COS_SERVICE_DOMAIN = get_type_env(key="COS_SERVICE_DOMAIN", _type=str, default="")
-# DBM Stats DB
-DBM_STATSDB_USER = get_type_env(key="DBM_STATSDB_USER", _type=str, default="")
-DBM_STATSDB_PASSWORD = get_type_env(key="DBM_STATSDB_PASSWORD", _type=str, default="")
-DBM_STATSDB_URL = get_type_env(key="DBM_STATSDB_URL", _type=str, default="")
-DBM_STATSDB_NAME = get_type_env(key="DBM_STATSDB_NAME", _type=str, default="")
+# 是否开启多租户
+ENABLE_MULTI_TENANT_MODE = get_type_env(key="ENABLE_MULTI_TENANT_MODE", _type=bool, default=False)
+IS_GLOBAL_TENANT = get_type_env(key="IS_GLOBAL_TENANT", _type=bool, default=False)

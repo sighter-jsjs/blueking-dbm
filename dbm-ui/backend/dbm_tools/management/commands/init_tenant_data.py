@@ -10,14 +10,16 @@ specific language governing permissions and limitations under the License.
 """
 from django.core.management.base import BaseCommand
 
-from backend.db_periodic_task.local_tasks.db_meta.update_app_cache import bulk_update_tenant_cache
+from backend.utils.tenant import TenantHandler
 
 
 class Command(BaseCommand):
     help = "update app cache."
 
     def add_arguments(self, parser):
-        pass
+        # 添加必填参数
+        parser.add_argument("tenant_id", type=str, help="租户id")
 
     def handle(self, *args, **options):
-        bulk_update_tenant_cache()
+        tenant_id = options["tenant_id"]
+        TenantHandler.init_tenant_config(tenant_id)

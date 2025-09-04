@@ -393,7 +393,9 @@ class DataAPI(object):
         :return:
         """
         # 缓存
-        cache_str = "url_{url}__params_{params}".format(url=self.build_actual_url(params), params=json.dumps(params))
+        cache_str = "tenant_id_{tenant_id}__url_{url}__params_{params}".format(
+            url=self.build_actual_url(params), params=json.dumps(params), tenant_id=self._get_tenant_id(params)
+        )
         hash_md5 = hashlib.new("md5")
         hash_md5.update(cache_str.encode("utf-8"))
         cache_key = hash_md5.hexdigest()
@@ -439,6 +441,7 @@ class DataAPI(object):
                 if value in local_request.COOKIES:
                     bkapi_auth_headers.update({key: local_request.COOKIES[value]})
         session.headers.update({"X-Bkapi-Authorization": json.dumps(bkapi_auth_headers)})
+        session.headers.update({"X-Bk-Tenant-Id": self._get_tenant_id(params)})
         # headers 申明重载请求方法
         if self.method_override is not None:
             session.headers.update({"X-METHOD-OVERRIDE": self.method_override})
@@ -574,6 +577,33 @@ class DataAPI(object):
         """
         if cache.get(cache_key):
             return cache.get(cache_key)
+
+    def _get_tenant_id(self, params):
+        """
+        获取租户ID，按照以下优先级获取：
+        1. 请求参数有租户ID
+        2. 请求参数包含业务ID，则从查询租户
+        3. 当前的local线程中有租户ID
+        4. 当前用户中有租户ID
+        注：在不开启多租户模式下，租户ID固定为default
+        """
+        from backend.components import NO_NEED_TENANT_API
+        from backend.utils.tenant import TenantHandler
+
+        if not settings.ENABLE_MULTI_TENANT_MODE or self.base in NO_NEED_TENANT_API:
+            return settings.DEFAULT_TENANT_ID
+
+        if "tenant_id" in params:
+            return params["tenant_id"]
+
+        if "bk_biz_id" in params:
+            return TenantHandler.get_tenant_id_by_biz(params["bk_biz_id"])
+
+        tenant_id = TenantHandler.get_tenant_id_from_local()
+        if tenant_id:
+            return tenant_id
+
+        raise ApiRequestError(_("无法获取当前请求的租户ID"))
 
 
 class BaseApi(object):
